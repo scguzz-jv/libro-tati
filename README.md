@@ -3,9 +3,11 @@
 Aplicacion web en HTML, CSS y JavaScript Vanilla para crear libros digitales online con:
 
 - editor moderno usando Quill
-- autenticacion anonima con Firebase
+- autenticacion con usuario y clave usando Firebase Authentication
+- acceso con botones separados para `Crear libro` y `Cargar libro`
 - autosave en Firestore
 - subida automatica de imagenes a Cloudinary
+- stickers movibles en portada, paginas de texto y paginas de imagen
 - respaldo temporal en `localStorage`
 - capitulos multiples
 - portada editable
@@ -28,7 +30,7 @@ archivo general/
 - Firebase ya quedo configurado en [firebase.js](<C:/Users/USUARIO/Desktop/archivo general/firebase.js>)
 - Cloudinary ya quedo configurado en [firebase.js](<C:/Users/USUARIO/Desktop/archivo general/firebase.js>)
 - La app ya funciona con texto en Firestore y respaldo local
-- Solo falta activar `Anonymous` en Firebase Authentication para que la sincronizacion en la nube quede operativa
+- Solo falta activar `Email/Password` en Firebase Authentication para que el mismo libro abra desde cualquier dispositivo
 
 ## Configuracion exacta que falta
 
@@ -76,13 +78,13 @@ No pongas `api_secret` ni `api_key` en esta app frontend.
 
 ## Firebase paso a paso
 
-### 1. Activar autenticacion anonima
+### 1. Activar acceso con usuario y clave
 
 1. Ve a [Firebase Console](https://console.firebase.google.com/).
 2. Abre tu proyecto `libro-d35e4`.
 3. Ve a `Authentication`.
 4. Abre `Sign-in method`.
-5. Activa `Anonymous`.
+5. Activa `Email/Password`.
 
 ### 2. Crear Firestore Database
 
@@ -97,7 +99,7 @@ service cloud.firestore {
     match /books/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
 
-      match /chapters/{chapterId} {
+      match /spreads/{spreadId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
@@ -154,13 +156,13 @@ Sugerencias durante `firebase init hosting`:
 ## Que guarda la aplicacion
 
 - titulo del libro
-- subtitulo
-- autor
-- capitulos
+- materia
+- carnet
+- bloques de texto e imagen
 - contenido enriquecido del editor
 - URLs finales de imagenes subidas a Cloudinary
 - modo visual
-- ultimo capitulo activo
+- ultimo bloque activo
 
 ## Como funciona el guardado
 
@@ -173,4 +175,4 @@ Sugerencias durante `firebase init hosting`:
 
 ## Nota importante
 
-La sesion anonima de Firebase normalmente persiste en el mismo navegador. Si el usuario borra manualmente los datos del navegador, Firebase puede asignar una nueva identidad y se perdera el acceso al libro anterior de esa sesion.
+El libro ahora se identifica por `usuario + clave`. Si quieres abrir el mismo libro en otro celular, tablet o PC, usa exactamente el mismo usuario y la misma clave.

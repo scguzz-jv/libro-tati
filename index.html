@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#05080f">
+  <title>Editor de Libro</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23c87a2e'/%3E%3Cpath d='M18 16h28v32H18c-2.209 0-4-1.791-4-4V20c0-2.209 1.791-4 4-4Z' fill='%23fff8ed'/%3E%3Cpath d='M24 16h4v32h-4z' fill='%232f415f'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@500;700&family=IBM+Plex+Serif:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="scene-glow" aria-hidden="true">
+    <span class="glow glow-a"></span>
+    <span class="glow glow-b"></span>
+    <span class="glow glow-c"></span>
+  </div>
+
+  <section class="auth-gate" id="authGate" aria-live="polite">
+    <div class="auth-card">
+      <p class="auth-eyebrow">Acceso al libro</p>
+      <h2>Abre tu libro desde cualquier dispositivo</h2>
+      <p class="auth-copy">No necesitas correo. Puedes usar algo simple como usuario: katerin y clave: 12345678.</p>
+
+      <form class="auth-form" id="authForm">
+        <label>
+          Usuario
+          <input id="authUsernameInput" type="text" maxlength="40" autocomplete="username" placeholder="Ejemplo: katerin" required>
+        </label>
+        <label>
+          Clave
+          <input id="authPasswordInput" type="password" minlength="6" autocomplete="current-password" placeholder="Minimo 6 caracteres" required>
+        </label>
+        <div class="auth-actions">
+          <button class="primary auth-submit" id="authCreateButton" type="button">Crear libro</button>
+          <button class="ghost auth-submit" id="authLoadButton" type="button">Cargar libro</button>
+        </div>
+      </form>
+
+      <p class="auth-hint">Usa exactamente el mismo usuario y la misma clave en cualquier dispositivo para abrir el mismo libro. No hace falta escribir un email real.</p>
+      <p class="auth-message" id="authMessageText"></p>
+    </div>
+  </section>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <div>
+          <h1>Libro tati</h1>
+        </div>
+        <button class="theme-toggle" id="themeToggle" type="button">
+          <span id="themeToggleLabel">Modo oscuro</span>
+        </button>
+      </div>
+
+      <section class="sidebar-card">
+        <div class="status-chip" id="saveStatusChip" data-state="idle">
+          <span class="status-dot"></span>
+          <strong id="saveStatusText">Listo para editar</strong>
+        </div>
+        <p class="muted" id="lastSavedText">Todavia no hay guardado en la nube.</p>
+      </section>
+
+      <section class="sidebar-card cover-fields">
+        <div class="section-head">
+          <h2>Portada</h2>
+          <span class="tag">Pagina 1</span>
+        </div>
+        <label>
+          Titulo
+          <input id="bookTitleInput" type="text" maxlength="120" placeholder="">
+        </label>
+        <label>
+          Materia
+          <textarea id="bookSubtitleInput" rows="2" maxlength="240" placeholder=""></textarea>
+        </label>
+        <label>
+          Carnet
+          <input id="bookAuthorInput" type="text" maxlength="80" placeholder="">
+        </label>
+        <div class="cover-upload-row">
+          <button class="ghost small" id="coverImageButton" type="button">Imagen portada</button>
+          <button class="ghost small danger" id="removeCoverImageButton" type="button">Quitar imagen</button>
+        </div>
+        <input class="hidden" id="coverImageInput" type="file" accept="image/*">
+        <p class="muted compact">Haz clic, pega o arrastra una imagen para usarla en la portada.</p>
+      </section>
+
+      <section class="sidebar-card">
+        <div class="section-head">
+          <h2>Bloques</h2>
+          <button class="primary small" id="addSpreadButton" type="button">Nuevo bloque</button>
+        </div>
+        <p class="muted compact">Cada bloque crea una pagina de texto y la siguiente pagina de imagen.</p>
+        <div class="spread-list" id="spreadList"></div>
+      </section>
+
+      <section class="sidebar-card">
+        <div class="section-head">
+          <h2>Estado</h2>
+          <button class="ghost small" id="saveNowButton" type="button">Guardar</button>
+        </div>
+        <ul class="info-list">
+          <li><span>Sesion</span><strong id="authStateText">Preparando...</strong></li>
+          <li><span>Nube</span><strong id="cloudStateText">Pendiente</strong></li>
+          <li><span>Respaldo</span><strong id="backupStateText">Activo</strong></li>
+          <li><span>Conexion</span><strong id="connectivityText">Detectando...</strong></li>
+        </ul>
+        <div class="sidebar-actions-grid">
+          <button class="ghost small" id="restoreBackupButton" type="button">Restaurar</button>
+          <button class="ghost small" id="switchUserButton" type="button">Cambiar usuario</button>
+          <button class="ghost small danger" id="deleteSpreadButton" type="button">Eliminar bloque</button>
+        </div>
+      </section>
+    </aside>
+
+    <button class="sidebar-backdrop" id="sidebarBackdrop" type="button" aria-label="Cerrar menu"></button>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+          <div>
+            <h2 id="pageLabel">Portada</h2>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="counter-pill">
+            <span>Pagina</span>
+            <strong id="pageCounter">1 / 1</strong>
+          </div>
+          <div class="counter-pill">
+            <span>Palabras</span>
+            <strong id="wordCount">0</strong>
+          </div>
+          <div class="counter-pill">
+            <span>Total</span>
+            <strong id="totalWordCount">0</strong>
+          </div>
+          <div class="topbar-actions">
+            <button class="ghost small" id="downloadPdfButton" type="button">Imprimir libro (PDF)</button>
+            <button class="ghost small accent" id="presentationModeButton" type="button">Presentar</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="control-strip" id="controlStrip">
+        <div class="toolbar-group" id="textTools">
+          <div id="textToolbar">
+            <span class="ql-formats">
+              <select class="ql-font"></select>
+              <select class="ql-header">
+                <option selected></option>
+                <option value="1"></option>
+                <option value="2"></option>
+                <option value="3"></option>
+              </select>
+            </span>
+            <span class="ql-formats">
+              <button class="ql-bold"></button>
+              <button class="ql-italic"></button>
+              <button class="ql-underline"></button>
+            </span>
+            <span class="ql-formats">
+              <select class="ql-color"></select>
+              <select class="ql-background"></select>
+            </span>
+            <span class="ql-formats">
+              <button class="ql-align" value=""></button>
+              <button class="ql-align" value="center"></button>
+              <button class="ql-align" value="right"></button>
+            </span>
+            <span class="ql-formats">
+              <button class="ql-clean"></button>
+            </span>
+          </div>
+        </div>
+
+        <div class="toolbar-group hidden" id="imageTools">
+          <button class="primary small" id="addImageFrameButton" type="button">Agregar cuadro</button>
+          <button class="ghost small" id="bringForwardButton" type="button">Traer al frente</button>
+          <button class="ghost small danger" id="removeImageFrameButton" type="button">Eliminar cuadro</button>
+          <p class="toolbar-help"></p>
+        </div>
+
+        <div class="toolbar-group" id="stickerTools">
+          <button class="primary small" id="addStickerButton" type="button">Añadir sticker</button>
+          <button class="ghost small" id="bringStickerForwardButton" type="button">Traer sticker</button>
+          <button class="ghost small danger" id="removeStickerButton" type="button">Quitar sticker</button>
+          <input class="hidden" id="stickerInput" type="file" accept="image/*" multiple>
+        </div>
+
+        <div class="palette-tools">
+          <button class="ghost small" id="paletteToggleButton" type="button">Paleta</button>
+          <div class="palette-dot" id="paletteDot" aria-hidden="true"></div>
+        </div>
+      </section>
+
+      <section class="palette-panel hidden" id="palettePanel" aria-live="polite">
+        <div class="palette-preview" id="palettePreview">
+          <div class="palette-preview-ring" aria-hidden="true"></div>
+          <span class="palette-preview-label" id="palettePreviewLabel">Pagina actual</span>
+        </div>
+
+        <div class="palette-strip" id="paletteStrip">
+          <button class="palette-swatch" data-color="#FCF56D" type="button" aria-label="Amarillo pastel"></button>
+          <button class="palette-swatch" data-color="#DFF2FF" type="button" aria-label="Celeste pastel"></button>
+          <button class="palette-swatch" data-color="#FFE0F1" type="button" aria-label="Rosa pastel"></button>
+          <button class="palette-swatch" data-color="#DFFBEA" type="button" aria-label="Verde pastel"></button>
+          <button class="palette-swatch" data-color="#E8E0FF" type="button" aria-label="Lila pastel"></button>
+          <button class="palette-swatch" data-color="#FFE7CC" type="button" aria-label="Durazno pastel"></button>
+          <button class="palette-swatch" data-color="#FFF1C9" type="button" aria-label="Crema pastel"></button>
+          <button class="palette-swatch" data-color="#DDF8F4" type="button" aria-label="Menta pastel"></button>
+        </div>
+
+        <div class="palette-footer">
+          <label class="palette-custom">
+            <input id="paletteColorInput" type="color" value="#FCF56D">
+            <span id="paletteHexText">#FCF56D</span>
+          </label>
+          <button class="ghost small" id="resetPageColorButton" type="button">Restablecer</button>
+        </div>
+      </section>
+
+      <section class="book-stage">
+        <button class="nav-arrow prev" id="prevPageButton" type="button" aria-label="Pagina anterior">
+          <span>&larr;</span>
+        </button>
+
+        <div class="book-perspective">
+          <div class="book-shadow"></div>
+          <article class="book-page" id="bookPage">
+            <header class="page-meta">
+              <span class="page-kind" id="pageKindLabel">Portada</span>
+              <input class="page-title-input hidden" id="spreadTitleInput" type="text" maxlength="100" placeholder="">
+            </header>
+
+            <section class="page-view cover-view" id="coverView">
+              <div class="cover-card" id="coverCard">
+                <div class="cover-media" id="coverMedia">
+                  <img id="coverImagePreview" alt="Imagen de portada">
+                  <div class="cover-image-empty" id="coverImageEmpty">
+                    <strong></strong>
+                    <span></span>
+                  </div>
+                </div>
+                <div class="cover-overlay"></div>
+                <div class="cover-deco cover-deco-a" aria-hidden="true"></div>
+                <div class="cover-deco cover-deco-b" aria-hidden="true"></div>
+                <div class="cover-deco cover-deco-c" aria-hidden="true"></div>
+                <div class="cover-content">
+                  <h3 id="coverTitlePreview"></h3>
+                  <div class="cover-info-line" id="coverSubjectLine">
+                    <span>Materia</span>
+                    <strong id="coverSubtitlePreview"></strong>
+                  </div>
+                  <div class="cover-author-line" id="coverAuthorLine">
+                    <span>Carnet</span>
+                    <strong id="coverAuthorPreview"></strong>
+                  </div>
+                </div>
+              </div>
+              <div class="sticker-layer" id="coverStickerLayer"></div>
+            </section>
+
+            <section class="page-view text-view hidden" id="textView">
+              <div id="textEditor" class="text-editor"></div>
+              <div class="sticker-layer" id="textStickerLayer"></div>
+            </section>
+
+            <section class="page-view image-view hidden" id="imageView">
+              <div class="image-canvas" id="imageCanvas">
+                <div class="image-canvas-hint" id="imageCanvasHint"></div>
+              </div>
+              <div class="sticker-layer" id="imageStickerLayer"></div>
+            </section>
+          </article>
+        </div>
+
+        <button class="nav-arrow next" id="nextPageButton" type="button" aria-label="Pagina siguiente">
+          <span>&rarr;</span>
+        </button>
+      </section>
+
+      <section class="presentation-hud" id="presentationHud" aria-live="polite">
+        <div class="presentation-meta">
+          <span class="presentation-chip" id="presentationPageLabel">Portada</span>
+          <strong id="presentationPageCounter">1 / 1</strong>
+        </div>
+        <div class="presentation-actions">
+          <button class="ghost small" id="fullscreenToggleButton" type="button">Pantalla completa</button>
+          <button class="primary small" id="exitPresentationButton" type="button">Salir</button>
+        </div>
+      </section>
+
+      <footer class="footer-panel">
+        <p id="recoveryText">Cada pagina se respalda en local y se sincroniza automaticamente cuando hay conexion.</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+  <script type="module" src="./app.js?v=6"></script>
+</body>
+</html>
